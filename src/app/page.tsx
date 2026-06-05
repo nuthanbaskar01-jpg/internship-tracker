@@ -358,19 +358,54 @@ function StatusBadge({ status }: { status: Status }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function InternshipTracker() {
+  const [showModal, setShowModal] = useState(false);
+
+  const [company, setCompany] = useState("");
+  const [role, setRole] = useState("");
+
+  const [applicationList, setApplicationList] = useState(applications);
+
+  const handleSave = () => {
+      if (!company || !role) return;
+
+    const newApplication: Application = {
+      id: Date.now().toString(),
+      company,
+      role,
+      status: "Applied",
+      date: new Date().toLocaleDateString(),
+      location: "Remote",
+      logo: company.charAt(0).toUpperCase(),
+      logoColor: "#6366F1",
+    };
+
+    setApplicationList([newApplication, ...applicationList]);
+
+    setCompany("");
+    setRole("");
+
+    setShowModal(false);
+    };
+
+    const handleDelete = (id: string) => {
+      setApplicationList(
+        applicationList.filter((app) => app.id !== id)
+    );  
+  };
+
   const [search, setSearch] = useState("");
   const [activeNav, setActiveNav] = useState("Dashboard");
 
-  const filtered = applications.filter(
+  const filtered = applicationList.filter(
     (a) =>
       a.company.toLowerCase().includes(search.toLowerCase()) ||
       a.role.toLowerCase().includes(search.toLowerCase())
   );
 
   const stats = {
-    total: applications.length,
-    interviews: applications.filter((a) => a.status === "Interview").length,
-    offers: applications.filter((a) => a.status === "Offer").length,
+    total: applicationList.length,
+    interviews: applicationList.filter((a) => a.status === "Interview").length,
+    offers: applicationList.filter((a) => a.status === "Offer").length,
   };
 
   const navGroups = [
@@ -675,6 +710,7 @@ export default function InternshipTracker() {
             </button>
 
             <button
+              onClick={() => setShowModal(true)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -714,7 +750,7 @@ export default function InternshipTracker() {
             </h1>
             <p style={{ fontSize: "13px", color: "#334155" }}>
               Summer 2025 internship season ·{" "}
-              <span style={{ color: "#475569" }}>{applications.length} applications tracked</span>
+              <span style={{ color: "#475569" }}>{applicationList.length} applications tracked</span>
             </p>
           </div>
 
@@ -777,7 +813,7 @@ export default function InternshipTracker() {
                   Recent Applications
                 </h2>
                 <p style={{ fontSize: "12px", color: "#334155" }}>
-                  {filtered.length} of {applications.length} shown
+                  {filtered.length} of {applicationList.length} shown
                 </p>
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
@@ -844,8 +880,12 @@ export default function InternshipTracker() {
                 </thead>
                 <tbody>
                   {filtered.map((app, i) => (
-                    <TableRow key={app.id} app={app} isLast={i === filtered.length - 1} />
-                  ))}
+                    <TableRow
+                      key={app.id}
+                      app={app}
+                      isLast={i === filtered.length - 1}
+                      onDelete={handleDelete}
+                    />                  ))}
                   {filtered.length === 0 && (
                     <tr>
                       <td
@@ -895,13 +935,108 @@ export default function InternshipTracker() {
           </div>
         </div>
       </main>
+
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999,
+          }}
+        >
+          <div
+            style={{
+              background: "#0C0C0F",
+              padding: "24px",
+              borderRadius: "12px",
+              width: "500px",
+              border: "1px solid rgba(99,102,241,0.25)",
+              boxShadow: "0 0 40px rgba(99,102,241,0.15)",
+            }}
+          >
+            <h2
+            style={{
+              marginBottom: "24px",
+              fontSize: "22px",
+              fontWeight: 700,
+              color: "#F1F5F9",
+            }}
+          >
+            New Application
+          </h2>
+
+            <input
+              placeholder="Company"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "12px",
+                background: "#111",
+                color: "white",
+                border: "1px solid #333",
+                borderRadius: "8px",
+              }}
+            />
+
+            <input
+              placeholder="Role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "20px",
+                background: "#111",
+                color: "white",
+                border: "1px solid #333",
+                borderRadius: "8px",
+              }}
+            />
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
+              <button
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </button>
+
+              <button onClick={handleSave}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
 
 // ─── Table Row (isolated for hover state) ─────────────────────────────────────
 
-function TableRow({ app, isLast }: { app: Application; isLast: boolean }) {
+  function TableRow({
+    app,
+    isLast,
+    onDelete,
+  }: {
+    app: Application;
+    isLast: boolean;
+    onDelete: (id: string) => void;
+  }) {
+
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -972,34 +1107,20 @@ function TableRow({ app, isLast }: { app: Application; isLast: boolean }) {
             transition: "opacity 0.15s",
           }}
         >
-          {[<ArrowUpRight key="a" size={14} />, <MoreHorizontal key="b" size={14} />].map((icon, idx) => (
-            <button
-              key={idx}
-              style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "6px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.07)",
-                color: "#475569",
-                cursor: "pointer",
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = "#94A3B8";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.12)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = "#475569";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.07)";
-              }}
-            >
-              {icon}
-            </button>
-          ))}
+          <button
+            onClick={() => onDelete(app.id)}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "6px",
+              background: "rgba(239,68,68,0.12)",
+              border: "1px solid rgba(239,68,68,0.25)",
+              color: "#EF4444",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            Delete
+          </button>
         </div>
       </td>
     </tr>
