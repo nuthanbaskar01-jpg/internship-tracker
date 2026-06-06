@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Briefcase,
@@ -363,35 +363,86 @@ export default function InternshipTracker() {
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [applicationList, setApplicationList] = useState(applications);
+
+useEffect(() => {
+  const savedApplications = localStorage.getItem("applications");
+
+  if (savedApplications) {
+    setApplicationList(JSON.parse(savedApplications));
+  }
+}, []);
+
+useEffect(() => {
+  localStorage.setItem(
+    "applications",
+    JSON.stringify(applicationList)
+  );
+}, [applicationList]);
 
   const handleSave = () => {
       if (!company || !role) return;
 
-    const newApplication: Application = {
-      id: Date.now().toString(),
-      company,
-      role,
-      status: "Applied",
-      date: new Date().toLocaleDateString(),
-      location: "Remote",
-      logo: company.charAt(0).toUpperCase(),
-      logoColor: "#6366F1",
-    };
+      if (editingId) {
+        setApplicationList(
+          applicationList.map((app) =>
+            app.id === editingId
+              ? {
+                  ...app,
+                  company,
+                  role,
+                }
+              : app
+          )
+        );
+      } else {
+        const newApplication: Application = {
+          id: Date.now().toString(),
+          company,
+          role,
+          status: "Applied",
+          date: new Date().toLocaleDateString(),
+          location: "Remote",
+          logo: company.charAt(0).toUpperCase(),
+          logoColor: "#6366F1",
+        };
 
-    setApplicationList([newApplication, ...applicationList]);
+        setApplicationList([newApplication, ...applicationList]);
+      }
 
-    setCompany("");
-    setRole("");
-
-    setShowModal(false);
+      setCompany("");
+      setRole("");
+      setEditingId(null);
+      setShowModal(false);
     };
 
     const handleDelete = (id: string) => {
       setApplicationList(
         applicationList.filter((app) => app.id !== id)
-    );  
-  };
+      );
+    };
+
+    const handleEdit = (app: Application) => {
+      setEditingId(app.id);
+      setCompany(app.company);
+      setRole(app.role);
+      setShowModal(true);
+    };
+
+    const handleStatusChange = (
+      id: string,
+      status: Status
+    ) => {
+      setApplicationList(
+        applicationList.map((app) =>
+          app.id === id
+            ? { ...app, status }
+            : app
+        )
+      );
+    };
 
   const [search, setSearch] = useState("");
   const [activeNav, setActiveNav] = useState("Dashboard");
@@ -885,6 +936,8 @@ export default function InternshipTracker() {
                       app={app}
                       isLast={i === filtered.length - 1}
                       onDelete={handleDelete}
+                      onStatusChange={handleStatusChange}
+                      onEdit={handleEdit}
                     />                  ))}
                   {filtered.length === 0 && (
                     <tr>
@@ -1031,10 +1084,17 @@ export default function InternshipTracker() {
     app,
     isLast,
     onDelete,
+    onStatusChange,
+    onEdit,
   }: {
     app: Application;
     isLast: boolean;
     onDelete: (id: string) => void;
+    onStatusChange: (
+      id: string,
+      status: Status
+    ) => void;
+    onEdit: (app: Application) => void;
   }) {
 
   const [hovered, setHovered] = useState(false);
@@ -1082,7 +1142,29 @@ export default function InternshipTracker() {
 
       {/* Status */}
       <td style={{ padding: "12px 20px" }}>
-        <StatusBadge status={app.status} />
+        <select
+          value={app.status}
+          onChange={(e) => onStatusChange(
+              app.id,
+              e.target.value as Status
+            )
+          }
+          style={{
+            background: "#0C0C0F",
+            color: "#CBD5E1",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "6px",
+            padding: "6px 10px",
+            fontSize: "12px",
+            cursor: "pointer",
+          }}
+        >
+          <option value="Applied">Applied</option>
+          <option value="Interview">Interview</option>
+          <option value="Offer">Offer</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Pending">Pending</option>
+        </select>
       </td>
 
       {/* Date */}
@@ -1107,6 +1189,21 @@ export default function InternshipTracker() {
             transition: "opacity 0.15s",
           }}
         >
+          <button
+            onClick={() => onEdit(app)}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "6px",
+              background: "rgba(59,130,246,0.12)",
+              border: "1px solid rgba(59,130,246,0.25)",
+              color: "#3B82F6",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            Edit
+          </button>
+
           <button
             onClick={() => onDelete(app.id)}
             style={{
