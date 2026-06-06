@@ -21,16 +21,16 @@
 | **Styles & Layout** | [e.g., Tailwind CSS / Shadcn UI / CSS Modules] |
 | **Build Optimization** | SWC Minification & Next Compiler Layers |
 
----
 
-```
 ## 🚀 Deployment & Local Execution
 
 ### 1. Prerequisites
 Verify that your machine has **Node.js LTS (v18+)** active.
 
 ### 2. Environment Setup
+
 ```bash
+
 # Clone the repository
 git clone [https://github.com/your-username/your-repo.git](https://github.com/your-username/your-repo.git)
 cd your-repo
